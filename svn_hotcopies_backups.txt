@@ -1,0 +1,70 @@
+@ECHO OFF
+CLS
+:: =================== COPYRIGHT ========================================= 
+:: File:          svn_backup.bat
+:: Author:        Oscar Adrian Gonzalez Gamboa
+:: Date:          27.06.2017
+:: Purpose:       Para hacer Backups ("hot copies") de multiples repositorios SVN
+:: History:       1.1
+:: Assumes:       Que se tiene subversion instalado: C:\Program Files\Subversion\bin
+::                El directorio de subversion solo tiene repositorios
+:: Copyright:     2017 Monterrey, Nuevo Leon, Mexico.
+::                
+:: ATENCION!!!
+:: Este script fue basado en el codigo de csimmons.net, LLC y no hay garantias por el uso de el mismo.
+:: No me hago responsable por algun daño a causa del uso de este producto. Por favor, dar credito
+:: en caso de uso, creacion de algun derivativo o distribucion de este producto.
+:: =================== COPYRIGHT =========================================
+
+:: =================== CONFIG ============================================
+:: Ruta al directorio que tiene los repositorios [Nota: usar diagonal invertida]
+SET repodir=C:\svn\
+:: Ruta al directorio donde se quiere crear los hotcopies [Nota: usar diagonal invertida]
+SET backupsdir=c:\svn_hotcopies\
+:: Ruta al archivo de logs [Nota: usar diagonal invertida]
+SET logdir=C:\logs\
+:: User mode - 1=Interactive | 0=NonInteractive
+SET imode=1
+:: =================== CONFIG ============================================
+
+:: =================== SCRIPT ============================================
+:: !!! NO ES NECESARIO EDITAR MAS ALLA DE ESTE PUNTO !!!
+
+:: Make a date_time stamp like 030902_134200
+SET hh=%time:~0,2%
+
+:: Add a zero when this is run before 10 am.
+IF "%time:~0,1%"==" " set hh=0%hh:~1,1%
+SET yyyymmdd_hhmmss=%date:~-4%%date:~3,2%%date:~0,2%_%hh%%time:~3,2%%time:~6,2%
+
+:: Make a name for the hotcopy backup folder
+SET hotcopyname=hotcopybackup_%yyyymmdd_hhmmss%
+
+:: Make the path with new hotcopy backup folder
+SET repodirhot=%backupsdir%%hotcopyname%\
+
+:: Make a name for the log file
+SET repolog=%logdir%%yyyymmdd_hhmmss%_hotcopy_svnbackup.log
+
+:: Start log
+ECHO START %date% %time% >> %repolog%
+
+:: IF a  hotcopy exists delete it first ELSE
+:: Create directories and svn hotcopy repos to them
+FOR /F %%G IN ('dir /b /ad %repodir%') DO ^
+IF EXIST %repodirhot%%%G (rmdir /S /Q %repodirhot%%%G & mkdir %repodirhot%%%G >> %repolog% & ^
+ECHO Starting SVN backup for %%G... >> %repolog% & ^
+svnadmin hotcopy %repodir%%%G %repodirhot%%%G --clean-logs >> %repolog% & ^
+IF %imode%== 1 ECHO FINISHED...%%G) ^
+ELSE (mkdir %repodirhot%%%G >> %repolog% & ^
+ECHO Starting SVN backup for %%G... >> %repolog% & ^
+svnadmin hotcopy %repodir%%%G %repodirhot%%%G --clean-logs >> %repolog% & ^
+IF %imode%== 1 ECHO FINISHED...%%G)
+
+:: Finish log
+ECHO END %date% %time% >> %repolog%
+:: Display log message if interactive mode otherwise EXIT
+ECHO Done... Logs available here: %repolog% 
+if %imode%== 1 pause
+:: =================== SCRIPT ============================================
+EXIT
